@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -23,6 +23,17 @@ function Layout({ children }) {
   );
 }
 
+// Protected route for admin only
+function AdminRoute({ children }) {
+  const { user, profile, loading } = useAuth();
+  
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile?.role !== 'admin') return <Navigate to="/" replace />;
+  
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -33,8 +44,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Admin - full screen, no navbar/footer */}
-          <Route path="/admin" element={<AdminPage />} />
+          {/* Admin - protected, full screen, no navbar/footer */}
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
 
           {/* Main app */}
           <Route path="/" element={<Layout><HomePage /></Layout>} />

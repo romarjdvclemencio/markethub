@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,10 +18,28 @@ export default function LoginPage() {
     setError('');
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     setLoading(true);
-    const { error: err } = await signIn(email, password);
+
+    const { data, error: err } = await signIn(email, password);
+    if (err) { setError(err.message); setLoading(false); return; }
+
+    // Check if this user is an admin and redirect accordingly
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch {
+      navigate('/'); // fallback for any error
+    }
+
     setLoading(false);
-    if (err) { setError(err.message); return; }
-    navigate('/');
   };
 
   return (
