@@ -165,6 +165,7 @@ export default function HomePage() {
       </section>
 
       {/* Flash Deals */}
+      {flashDeals.length > 0 && (
       <section className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -180,6 +181,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* All Products */}
       <section className="bg-white rounded-xl shadow-sm p-4">
@@ -187,11 +189,25 @@ export default function HomePage() {
           <h2 className="text-lg font-bold text-gray-800">Recommended For You</h2>
           <Link to="/search" className="text-green-600 text-sm font-medium hover:underline">View All →</Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-gray-100 rounded-lg aspect-square animate-pulse" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">
+            <p className="text-4xl mb-3">🛍️</p>
+            <p className="font-medium">No products yet</p>
+            <p className="text-sm mt-1">Check back soon!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {products.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

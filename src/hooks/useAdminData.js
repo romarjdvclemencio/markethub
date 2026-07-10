@@ -1,36 +1,31 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { users as mockUsers, orders as mockOrders, sellers as mockSellers, events as mockEvents } from '../data/adminData';
-
-const isConfigured = () =>
-  import.meta.env.VITE_SUPABASE_URL &&
-  import.meta.env.VITE_SUPABASE_URL !== 'your_supabase_project_url';
 
 export function useAdminData() {
   const [data, setData] = useState({
-    users: mockUsers,
-    orders: mockOrders,
-    sellers: mockSellers,
-    events: mockEvents,
-    loading: false,
+    users: [],
+    orders: [],
+    sellers: [],
+    events: [],
+    products: [],
+    loading: true,
   });
 
   const fetchAll = async () => {
-    if (!isConfigured()) return; // use mock data
-
     setData(d => ({ ...d, loading: true }));
 
-    const [profilesRes, ordersRes, eventsRes] = await Promise.all([
+    const [profilesRes, ordersRes, eventsRes, productsRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
       supabase.from('events').select('*').order('start_date'),
+      supabase.from('products').select('*').order('sold', { ascending: false }),
     ]);
 
     setData({
-      users: profilesRes.data?.map(p => ({
+      users: (profilesRes.data || []).map(p => ({
         id: p.id,
         name: p.name || 'Unknown',
-        email: '',
+        email: p.email || '—',
         phone: p.phone || '—',
         role: p.role || 'buyer',
         status: 'active',
@@ -39,20 +34,20 @@ export function useAdminData() {
         avatar: (p.name || 'U')[0].toUpperCase(),
         orders: 0,
         totalSpent: 0,
-      })) ?? mockUsers,
-      orders: ordersRes.data?.map(o => ({
+      })),
+      orders: (ordersRes.data || []).map(o => ({
         id: o.id.slice(0, 9).toUpperCase(),
-        customer: o.customer_name,
-        product: o.product_name,
+        customer: o.customer_name || '—',
+        product: o.product_name || '—',
         quantity: o.quantity,
-        total: o.total,
+        total: Number(o.total),
         status: o.status,
         date: o.created_at?.slice(0, 10),
         payment: o.payment_method || '—',
         address: o.address || '—',
-      })) ?? mockOrders,
-      sellers: mockSellers, // sellers table not in scope yet
-      events: eventsRes.data?.map(e => ({
+      })),
+      sellers: [],
+      events: (eventsRes.data || []).map(e => ({
         id: e.id,
         name: e.name,
         description: e.description,
@@ -62,7 +57,23 @@ export function useAdminData() {
         startDate: e.start_date,
         endDate: e.end_date,
         participants: e.participants,
-      })) ?? mockEvents,
+      })),
+      products: (productsRes.data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price),
+        originalPrice: Number(p.original_price),
+        image: p.image,
+        category: p.category,
+        stock: p.stock,
+        sold: p.sold,
+        rating: Number(p.rating),
+        reviews: p.reviews,
+        discount: p.discount,
+        isFlashDeal: p.is_flash_deal,
+        seller: p.seller_name,
+        location: p.location,
+      })),
       loading: false,
     });
   };
@@ -70,33 +81,29 @@ export function useAdminData() {
   useEffect(() => {
     fetchAll();
 
-    if (!isConfigured()) return;
-
-    // Real-time: re-fetch when orders change
     const channel = supabase
       .channel('admin-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchAll)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // Admin actions
   const updateOrderStatus = async (orderId, status) => {
-    if (!isConfigured()) return;
     await supabase.from('orders').update({ status }).eq('id', orderId);
   };
 
   const deleteEvent = async (eventId) => {
-    if (!isConfigured()) return;
     await supabase.from('events').delete().eq('id', eventId);
+    fetchAll();
   };
 
   const createEvent = async (eventData) => {
-    if (!isConfigured()) return;
     await supabase.from('events').insert([eventData]);
+    fetchAll();
   };
 
   return { ...data, updateOrderStatus, deleteEvent, createEvent, refetch: fetchAll };

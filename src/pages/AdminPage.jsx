@@ -6,7 +6,7 @@ import {
   MoreVertical, Eye, Trash2, Edit, X, Check, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Star, MapPin, Filter
 } from 'lucide-react';
-import { users, orders, sellers, events, monthlySales, categoryStats, products } from '../data/adminData';
+import { useAdminData } from '../hooks/useAdminData';
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, trend, color }) {
@@ -97,7 +97,7 @@ function Badge({ status }) {
 }
 
 // ─── Dashboard Overview Tab ──────────────────────────────────────────────────
-function DashboardTab() {
+function DashboardTab({ users, orders, products, events }) {
   const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + o.total, 0);
   const totalOrders = orders.length;
   const totalUsers = users.length;
@@ -107,86 +107,82 @@ function DashboardTab() {
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<TrendingUp size={22} className="text-green-600" />} label="Total Revenue" value={`₱${totalRevenue.toLocaleString('en',{minimumFractionDigits:2})}`} sub="vs last month" trend={12.5} color="bg-green-50" />
-        <StatCard icon={<ShoppingBag size={22} className="text-blue-600" />} label="Total Orders" value={totalOrders} sub="vs last month" trend={8.3} color="bg-blue-50" />
-        <StatCard icon={<Users size={22} className="text-purple-600" />} label="Total Users" value={totalUsers} sub="vs last month" trend={5.1} color="bg-purple-50" />
-        <StatCard icon={<Package size={22} className="text-orange-600" />} label="Products Listed" value={totalProducts} sub="vs last month" trend={-2.4} color="bg-orange-50" />
-      </div>
-
-      {/* Charts row */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-5">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-bold text-gray-800">Monthly Revenue</h3>
-            <span className="text-xs text-gray-400">Jan – Jul 2024</span>
-          </div>
-          <BarChart data={monthlySales} />
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-5">
-          <h3 className="font-bold text-gray-800 mb-1">Sales by Category</h3>
-          <CategoryList data={categoryStats} />
-        </div>
+        <StatCard icon={<TrendingUp size={22} className="text-green-600" />} label="Total Revenue" value={`₱${totalRevenue.toLocaleString('en',{minimumFractionDigits:2})}`} sub="from delivered orders" trend={0} color="bg-green-50" />
+        <StatCard icon={<ShoppingBag size={22} className="text-blue-600" />} label="Total Orders" value={totalOrders} sub="all time" trend={0} color="bg-blue-50" />
+        <StatCard icon={<Users size={22} className="text-purple-600" />} label="Total Users" value={totalUsers} sub="registered" trend={0} color="bg-purple-50" />
+        <StatCard icon={<Package size={22} className="text-orange-600" />} label="Products Listed" value={totalProducts} sub="in catalog" trend={0} color="bg-orange-50" />
       </div>
 
       {/* Recent orders */}
       <div className="bg-white rounded-xl shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-800">Recent Orders</h3>
-          <span className="text-xs text-green-600 cursor-pointer hover:underline">View all</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b text-xs uppercase">
-                <th className="pb-2 pr-4">Order ID</th>
-                <th className="pb-2 pr-4">Customer</th>
-                <th className="pb-2 pr-4">Product</th>
-                <th className="pb-2 pr-4">Total</th>
-                <th className="pb-2 pr-4">Status</th>
-                <th className="pb-2">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {orders.slice(0, 6).map(order => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="py-2.5 pr-4 font-mono text-xs text-gray-500">{order.id}</td>
-                  <td className="py-2.5 pr-4 font-medium text-gray-800">{order.customer}</td>
-                  <td className="py-2.5 pr-4 text-gray-600 max-w-[160px] truncate">{order.product}</td>
-                  <td className="py-2.5 pr-4 font-semibold text-green-600">₱{order.total.toFixed(2)}</td>
-                  <td className="py-2.5 pr-4"><Badge status={order.status} /></td>
-                  <td className="py-2.5 text-gray-400 text-xs">{order.date}</td>
+        <h3 className="font-bold text-gray-800 mb-4">Recent Orders</h3>
+        {orders.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <ShoppingBag size={36} className="mx-auto mb-2 opacity-30" />
+            <p>No orders yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b text-xs uppercase">
+                  <th className="pb-2 pr-4">Order ID</th>
+                  <th className="pb-2 pr-4">Customer</th>
+                  <th className="pb-2 pr-4">Product</th>
+                  <th className="pb-2 pr-4">Total</th>
+                  <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2">Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {orders.slice(0, 6).map(order => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="py-2.5 pr-4 font-mono text-xs text-gray-500">{order.id}</td>
+                    <td className="py-2.5 pr-4 font-medium text-gray-800">{order.customer}</td>
+                    <td className="py-2.5 pr-4 text-gray-600 max-w-[160px] truncate">{order.product}</td>
+                    <td className="py-2.5 pr-4 font-semibold text-green-600">₱{order.total.toFixed(2)}</td>
+                    <td className="py-2.5 pr-4"><Badge status={order.status} /></td>
+                    <td className="py-2.5 text-gray-400 text-xs">{order.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Top products */}
       <div className="bg-white rounded-xl shadow-sm p-5">
         <h3 className="font-bold text-gray-800 mb-4">Top Selling Products</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {products.sort((a,b) => b.sold - a.sold).slice(0,6).map(p => (
-            <div key={p.id} className="flex gap-3 items-center p-3 border rounded-lg hover:border-green-300 transition-colors">
-              <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                <p className="text-xs text-gray-500">{p.sold.toLocaleString()} sold · ₱{p.price}</p>
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs text-gray-500">{p.rating}</span>
+        {products.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <Package size={36} className="mx-auto mb-2 opacity-30" />
+            <p>No products yet — add products from the Products tab</p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {products.sort((a,b) => b.sold - a.sold).slice(0,6).map(p => (
+              <div key={p.id} className="flex gap-3 items-center p-3 border rounded-lg hover:border-green-300 transition-colors">
+                <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
+                  <p className="text-xs text-gray-500">{p.sold?.toLocaleString()} sold · ₱{p.price}</p>
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    <Star size={10} className="fill-yellow-400 text-yellow-400" />
+                    <span className="text-xs text-gray-500">{p.rating}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Users Tab ───────────────────────────────────────────────────────────────
-function UsersTab() {
+function UsersTab({ users }) {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -283,7 +279,7 @@ function UsersTab() {
 }
 
 // ─── Products Tab ────────────────────────────────────────────────────────────
-function ProductsTab() {
+function ProductsTab({ products }) {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('all');
   const cats = [...new Set(products.map(p => p.category))];
@@ -378,7 +374,7 @@ function ProductsTab() {
 }
 
 // ─── Orders Tab ──────────────────────────────────────────────────────────────
-function OrdersTab() {
+function OrdersTab({ orders }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -473,7 +469,7 @@ function OrdersTab() {
 }
 
 // ─── Sellers Tab ─────────────────────────────────────────────────────────────
-function SellersTab() {
+function SellersTab({ sellers }) {
   const [search, setSearch] = useState('');
   const filtered = sellers.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -547,7 +543,7 @@ function SellersTab() {
 }
 
 // ─── Events Tab ──────────────────────────────────────────────────────────────
-function EventsTab() {
+function EventsTab({ events, adminData }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -598,7 +594,7 @@ function EventsTab() {
 }
 
 // ─── Sales Analytics Tab ─────────────────────────────────────────────────────
-function SalesTab() {
+function SalesTab({ orders }) {
   const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s,o) => s + o.total, 0);
   const avgOrder = totalRevenue / orders.filter(o => o.status === 'delivered').length;
 
@@ -701,6 +697,8 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
+  const adminData = useAdminData();
+  const { users, orders, sellers, events, products, loading } = adminData;
 
   const notifications = [
     { msg: 'New order ORD-012 placed by Diego Mendoza', time: '2m ago', unread: true },
@@ -711,15 +709,23 @@ export default function AdminPage() {
   ];
 
   const renderContent = () => {
+    if (loading) return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-500 text-sm">Loading live data...</p>
+        </div>
+      </div>
+    );
     switch (activeTab) {
-      case 'dashboard': return <DashboardTab />;
-      case 'users':     return <UsersTab />;
-      case 'products':  return <ProductsTab />;
-      case 'orders':    return <OrdersTab />;
-      case 'sellers':   return <SellersTab />;
-      case 'events':    return <EventsTab />;
-      case 'sales':     return <SalesTab />;
-      default:          return <DashboardTab />;
+      case 'dashboard': return <DashboardTab users={users} orders={orders} products={products} events={events} />;
+      case 'users':     return <UsersTab users={users} />;
+      case 'products':  return <ProductsTab products={products} />;
+      case 'orders':    return <OrdersTab orders={orders} />;
+      case 'sellers':   return <SellersTab sellers={sellers} />;
+      case 'events':    return <EventsTab events={events} adminData={adminData} />;
+      case 'sales':     return <SalesTab orders={orders} />;
+      default:          return <DashboardTab users={users} orders={orders} products={products} events={events} />;
     }
   };
 
